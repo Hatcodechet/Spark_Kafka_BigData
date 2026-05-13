@@ -20,13 +20,15 @@ def main() -> None:
         raise ValueError(f"No rows found in {RESULTS_FILE}")
 
     df["rate"] = pd.to_numeric(df["rate"], errors="coerce")
+    df["duration_seconds"] = pd.to_numeric(df["duration_seconds"], errors="coerce")
     df["consumer_lag"] = pd.to_numeric(df["consumer_lag"], errors="coerce")
-    df = df.dropna(subset=["rate"])
+    df = df.dropna(subset=["rate", "duration_seconds"])
+    df["expected_records"] = df["rate"] * df["duration_seconds"]
 
     fig, ax1 = plt.subplots(figsize=(8, 4.5))
-    ax1.plot(df["rate"], df["duration_seconds"], marker="o", label="run duration")
+    ax1.plot(df["rate"], df["expected_records"], marker="o", label="expected records sent")
     ax1.set_xlabel("Producer rate (records/sec)")
-    ax1.set_ylabel("Run duration (seconds)")
+    ax1.set_ylabel("Expected records sent")
     ax1.grid(True, alpha=0.3)
 
     if df["consumer_lag"].notna().any():

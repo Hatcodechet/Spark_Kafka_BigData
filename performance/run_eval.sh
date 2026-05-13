@@ -20,26 +20,24 @@ for rate in ${RATES}; do
   started_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   echo "Running producer at ${rate} records/sec for ${DURATION_SECONDS}s"
 
-  runner=()
-  if command -v timeout >/dev/null 2>&1; then
-    runner=(timeout "${DURATION_SECONDS}")
-    loop_args=(--loop)
-  elif command -v gtimeout >/dev/null 2>&1; then
-    runner=(gtimeout "${DURATION_SECONDS}")
-    loop_args=(--loop)
-  else
-    loop_args=()
-    echo "No timeout/gtimeout command found; this run will replay the input once"
-  fi
-
   set +e
-  "${runner[@]}" python -m producer.producer \
+  python -u -m producer.producer \
     --bootstrap "${BOOTSTRAP}" \
     --topic "${TOPIC}" \
     --input-file "${INPUT_FILE}" \
     --rate "${rate}" \
-    "${loop_args[@]}"
-  exit_code=$?
+    --loop &
+  producer_pid=$!
+
+  sleep "${DURATION_SECONDS}"
+  if kill -0 "${producer_pid}" 2>/dev/null; then
+    kill "${producer_pid}" 2>/dev/null
+    wait "${producer_pid}" 2>/dev/null
+    exit_code=$?
+  else
+    wait "${producer_pid}"
+    exit_code=$?
+  fi
   set -e
 
   lag="unknown"

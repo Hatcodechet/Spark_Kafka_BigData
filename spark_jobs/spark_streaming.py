@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
+import sys
 
 import joblib
 import pandas as pd
@@ -69,9 +71,15 @@ def parse_args() -> argparse.Namespace:
 
 
 def build_spark_session() -> SparkSession:
+    os.environ.setdefault("PYSPARK_PYTHON", sys.executable)
+    os.environ.setdefault("PYSPARK_DRIVER_PYTHON", sys.executable)
+
     return (
         SparkSession.builder.appName("electricity-streaming")
-        .master("local[*]")
+        .master("local[2]")
+        .config("spark.pyspark.python", sys.executable)
+        .config("spark.pyspark.driver.python", sys.executable)
+        .config("spark.sql.shuffle.partitions", "8")
         .config(
             "spark.jars.packages",
             "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0",
